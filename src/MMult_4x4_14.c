@@ -39,19 +39,22 @@ void InnerKernel( int m, int n, int k, double *a, int lda,
                                        double *c, int ldc, int first_time )
 {
   int i, j;
-  double 
-    packedA[ m * k ], packedB[ k*n ];
+  double *packedA = (double*) malloc(sizeof(double) * m * k);
+  double *packedB = (double*) malloc(sizeof(double) * n * k);
+   // packedA[ m * k ], packedB[ k*n ];
 
   for ( j=0; j<n; j+=4 ){        /* Loop over the columns of C, unrolled by 4 */
-    PackMatrixB( k, &B( 0, j ), ldb, &packedB[ j*k ] );
+    PackMatrixB( k, &B( 0, j ), ldb, packedB+ j*k  );
     for ( i=0; i<m; i+=4 ){        /* Loop over the rows of C */
       /* Update C( i,j ), C( i,j+1 ), C( i,j+2 ), and C( i,j+3 ) in
 	 one routine (four inner products) */
       if ( j == 0 ) 
-	PackMatrixA( k, &A( i, 0 ), lda, &packedA[ i*k ] );
-      AddDot4x4( k, &packedA[ i*k ], 4, &packedB[ j*k ], k, &C( i,j ), ldc );
+	PackMatrixA( k, &A( i, 0 ), lda, packedA+ i*k  );
+      AddDot4x4( k, packedA+ i*k , 4, &packedB[ j*k ], k, &C( i,j ), ldc );
     }
   }
+  free(packedA);
+  free(packedB);
 }
 
 void PackMatrixA( int k, double *a, int lda, double *a_to )
